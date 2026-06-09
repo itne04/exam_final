@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Windows Server — ຂັ້ນຕອນເທື່ອລະ Step</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600;700&family=IBM+Plex+Mono&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #07090f;
+  --bg2: #0c1018;
+  --surface: #101520;
+  --surface2: #141b26;
+  --border: #1c2840;
+  --border2: #243048;
+  --blue: #3b82f6;
+  --indigo: #6366f1;
+  --green: #10b981;
+  --yellow: #f59e0b;
+  --red: #ef4444;
+  --purple: #a855f7;
+  --cyan: #06b6d4;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --muted2: #94a3b8;
+  --mono: 'IBM Plex Mono', monospace;
+}
+
+body {
+  font-family: 'Noto Sans Lao', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ─── LAYOUT ─── */
+.app { display: flex; height: 100vh; overflow: hidden; }
+
+/* ─── SIDEBAR ─── */
+.sidebar {
+  width: 260px;
+  min-width: 260px;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sidebar-logo {
+  padding: 20px 18px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-logo h1 { font-size: 13px; font-weight: 700; color: #fff; }
+.sidebar-logo p { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.sidebar-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 8px;
+  background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25);
+  color: #fca5a5; font-size: 10px; font-weight: 700;
+  padding: 3px 8px; border-radius: 99px;
+}
+.sidebar-badge::before { content:''; width:6px; height:6px; border-radius:50%; background:#ef4444; animation: blink 1.5s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.chapter-list { flex: 1; overflow-y: auto; padding: 12px 10px; scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
+.chapter-label { font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; padding: 4px 8px 8px; }
+
+.chapter-btn {
+  width: 100%; background: none; border: none; cursor: pointer;
+  padding: 0; margin-bottom: 3px; text-align: left;
+  border-radius: 8px; overflow: hidden;
+  transition: all 0.15s;
+}
+.chapter-btn:hover .ch-inner { background: rgba(255,255,255,0.04); }
+.chapter-btn.active .ch-inner { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.3); }
+.ch-inner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition: all 0.15s;
+}
+.ch-icon {
+  width: 30px; height: 30px; min-width: 30px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.ch-text { flex: 1; min-width: 0; }
+.ch-num { font-size: 9px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+.ch-title { font-size: 12px; font-weight: 600; color: var(--muted2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chapter-btn.active .ch-title { color: #fff; }
+.ch-steps { font-size: 9px; color: var(--muted); margin-top: 1px; }
+
+/* ─── MAIN ─── */
+.main {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0;
+}
+
+.topbar {
+  height: 52px; min-height: 52px;
+  background: rgba(7,9,15,0.8); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+}
+.topbar-title { font-size: 12px; font-weight: 700; color: var(--muted2); display: flex; align-items: center; gap: 8px; }
+.topbar-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); animation: blink 2s infinite; }
+.step-counter {
+  font-size: 11px; color: var(--muted);
+  background: var(--surface); border: 1px solid var(--border);
+  padding: 4px 10px; border-radius: 6px; font-weight: 600;
+}
+
+.content { flex: 1; overflow-y: auto; padding: 32px 32px 80px; scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
+
+/* ─── CHAPTER VIEW ─── */
+.chapter-view { display: none; animation: fadeIn 0.2s ease; }
+.chapter-view.active { display: block; }
+@keyframes fadeIn { from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:translateY(0)} }
+
+.chapter-header { margin-bottom: 28px; }
+.ch-eyebrow {
+  display: inline-block;
+  font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 4px; margin-bottom: 10px;
+}
+.chapter-header h2 { font-size: 26px; font-weight: 700; color: #fff; margin-bottom: 5px; }
+.chapter-header p { font-size: 13px; color: var(--muted2); }
+
+/* ─── STEP BLOCK ─── */
+.step-block {
+  display: flex; gap: 0; margin-bottom: 0;
+  position: relative;
+}
+.step-block:last-child .step-line { display: none; }
+
+.step-left {
+  display: flex; flex-direction: column; align-items: center;
+  width: 48px; min-width: 48px;
+  padding-top: 2px;
+}
+.step-circle {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #fff;
+  flex-shrink: 0; z-index: 1; position: relative;
+  box-shadow: 0 0 0 4px var(--bg);
+}
+.step-line {
+  width: 2px; flex: 1; min-height: 24px;
+  background: linear-gradient(to bottom, var(--border2), transparent);
+  margin-top: 4px; margin-bottom: 0;
+}
+
+.step-right {
+  flex: 1; min-width: 0;
+  padding-bottom: 28px;
+  padding-left: 16px;
+}
+
+.step-title-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;
+}
+.step-title { font-size: 15px; font-weight: 700; color: #fff; }
+.step-badge {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 4px;
+}
+
+/* ─── PATH BOX ─── */
+.path-box {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px; margin-bottom: 10px;
+  font-size: 12px;
+}
+.path-sep { color: var(--muted); font-size: 14px; }
+.path-step {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 5px;
+  background: var(--surface); border: 1px solid var(--border2);
+  color: var(--text); font-weight: 600; white-space: nowrap;
+}
+.path-step.highlight { background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.3); color: #93c5fd; }
+
+/* ─── CODE ─── */
+.code {
+  background: #040608; border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  border-radius: 8px; padding: 12px 16px;
+  font-family: var(--mono); font-size: 12px; line-height: 1.8;
+  overflow-x: auto; margin: 10px 0;
+  white-space: pre;
+}
+.c-cmd { color: #fbbf24; }
+.c-val { color: #86efac; }
+.c-path { color: #c084fc; }
+.c-comment { color: #374151; }
+.c-key { color: #93c5fd; }
+
+/* ─── INFO BOXES ─── */
+.info-box {
+  border-radius: 9px; padding: 12px 14px;
+  margin: 10px 0; font-size: 13px; line-height: 1.6;
+}
+.info-box strong { color: #fff; }
+.box-blue { background: rgba(59,130,246,0.07); border: 1px solid rgba(59,130,246,0.2); border-left: 3px solid var(--blue); }
+.box-green { background: rgba(16,185,129,0.07); border: 1px solid rgba(16,185,129,0.2); border-left: 3px solid var(--green); }
+.box-yellow { background: rgba(245,158,11,0.07); border: 1px solid rgba(245,158,11,0.2); border-left: 3px solid var(--yellow); }
+.box-red { background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.2); border-left: 3px solid var(--red); }
+.box-purple { background: rgba(168,85,247,0.07); border: 1px solid rgba(168,85,247,0.2); border-left: 3px solid var(--purple); }
+
+/* ─── GRID ─── */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 10px 0; }
+
+/* ─── IP FIELDS ─── */
+.ip-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 9px; padding: 12px 14px;
+}
+.ip-card.important { border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.04); }
+.ip-label { font-size: 9px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.ip-val { font-family: var(--mono); font-size: 16px; font-weight: 600; }
+.ip-note { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+/* ─── TABLE ─── */
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0; }
+.tbl th {
+  background: var(--surface2); color: var(--muted2);
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+  padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border);
+}
+.tbl td {
+  padding: 9px 12px; border-bottom: 1px solid var(--border);
+  color: var(--muted2); vertical-align: top; line-height: 1.5;
+}
+.tbl td:first-child { color: #e2e8f0; font-weight: 600; }
+.tbl tr:last-child td { border-bottom: none; }
+.tbl tr:hover td { background: rgba(255,255,255,0.015); }
+
+/* ─── TREE ─── */
+.ou-tree { margin: 12px 0; }
+.ou-root {
+  background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(59,130,246,0.08));
+  border: 1px solid rgba(99,102,241,0.3); border-radius: 10px;
+  padding: 11px 16px; text-align: center; font-weight: 700; font-size: 14px; color: #fff;
+  position: relative;
+}
+.ou-root::after {
+  content: ''; position: absolute; bottom: -14px; left: 50%;
+  transform: translateX(-50%);
+  width: 2px; height: 14px; background: var(--border2);
+}
+.ou-main {
+  background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.25);
+  border-radius: 10px; padding: 10px 16px; text-align: center;
+  font-weight: 700; font-size: 13px; color: #c4b5fd;
+  margin-top: 14px; position: relative;
+}
+.ou-main::before {
+  content: ''; position: absolute; top: -14px; left: 50%;
+  transform: translateX(-50%);
+  width: 2px; height: 14px; background: var(--border2);
+}
+.ou-main::after {
+  content: ''; position: absolute; bottom: -14px; left: 50%;
+  transform: translateX(-50%);
+  width: 2px; height: 14px; background: var(--border2);
+}
+.ou-children {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px; margin-top: 14px;
+}
+.ou-child {
+  border-radius: 9px; padding: 10px; text-align: center;
+  font-weight: 700; font-size: 12px; position: relative;
+}
+.ou-child::before {
+  content: ''; position: absolute; top: -14px; left: 50%;
+  transform: translateX(-50%);
+  width: 2px; height: 14px; background: var(--border2);
+}
+.ou-it { background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.25); color: #67e8f9; }
+.ou-hr { background: rgba(244,63,94,0.08); border: 1px solid rgba(244,63,94,0.25); color: #fda4af; }
+.ou-sales { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); color: #6ee7b7; }
+
+/* ─── GATE ─── */
+.gate-visual {
+  display: flex; align-items: center; justify-content: center;
+  gap: 14px; padding: 20px 16px;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 12px;
+  margin: 12px 0;
+}
+.gate-node { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.gate-icon-box {
+  width: 50px; height: 65px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center; font-size: 24px;
+}
+.gate-share { background: linear-gradient(135deg, #1e3a8a, #2563eb); border: 1px solid #3b82f6; }
+.gate-ntfs { background: linear-gradient(135deg, #064e3b, #059669); border: 1px solid #10b981; }
+.gate-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.gate-sub { font-size: 10px; color: var(--muted); }
+.gate-arr { font-size: 18px; color: var(--muted); }
+
+/* ─── QUOTA BAR ─── */
+.quota-bar-wrap {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 16px; margin: 10px 0;
+}
+.quota-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted2); margin-bottom: 6px; font-weight: 600; }
+.quota-track { background: var(--surface); border: 1px solid var(--border); border-radius: 99px; height: 10px; overflow: hidden; }
+.quota-fill { height: 100%; border-radius: 99px; transition: width 0.5s; }
+.quota-note { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+/* ─── KEYWORD ─── */
+.kw { color: var(--yellow); font-weight: 700; }
+.kw-b { color: #93c5fd; font-weight: 700; }
+.kw-g { color: #6ee7b7; font-weight: 700; }
+.kw-r { color: #fca5a5; font-weight: 700; }
+.kw-p { color: #d8b4fe; font-weight: 700; }
+
+/* ─── BADGE ─── */
+.badge {
+  display: inline-block; padding: 2px 7px; border-radius: 4px;
+  font-size: 10px; font-weight: 700;
+}
+.b-blue { background: rgba(59,130,246,0.12); color: #93c5fd; border: 1px solid rgba(59,130,246,0.25); }
+.b-green { background: rgba(16,185,129,0.12); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.25); }
+.b-yellow { background: rgba(245,158,11,0.12); color: #fde68a; border: 1px solid rgba(245,158,11,0.25); }
+.b-red { background: rgba(239,68,68,0.12); color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
+.b-purple { background: rgba(168,85,247,0.12); color: #d8b4fe; border: 1px solid rgba(168,85,247,0.25); }
+
+/* ─── DIVIDER ─── */
+hr.div { border: none; border-top: 1px solid var(--border); margin: 8px 0 20px; }
+
+/* ─── NOTE ROW ─── */
+.note-row { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--muted2); padding: 5px 0; }
+.note-row .dot { width: 5px; height: 5px; border-radius: 50%; margin-top: 7px; flex-shrink: 0; }
+
+/* scroll custom */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+@media (max-width: 700px) {
+  .sidebar { display: none; }
+  .grid2, .grid3, .ou-children { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h1>🛠️ Windows Server</h1>
+    <p>ຂັ້ນຕອນເທື່ອລະ Step — VMware Lab</p>
+    <div class="sidebar-badge">ເສັງມື້ອື່ນ</div>
+  </div>
+  <div class="chapter-list">
+    <div class="chapter-label">ບົດຮຽນ</div>
+
+    <button class="chapter-btn active" onclick="show('c0',this)">
+      <div class="ch-inner">
+        <div class="ch-icon" style="background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25);">🌐</div>
+        <div class="ch-text">
+          <div class="ch-num">Step 0</div>
+          <div class="ch-title">ຕັ້ງຄ່າ Static IP</div>
+          <div class="ch-steps">7 ຂັ້ນຕອນ</div>
+        </div>
+      </div>
+    </button>
+
+    <button class="chapter-btn" onclick="show('c1',this)">
+      <div class="ch-inner">
+        <div class="ch-icon" style="background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.25);">🏢</div>
+        <div class="ch-text">
+          <div class="ch-num">Step 1</div>
+          <div class="ch-title">Active Directory</div>
+          <div class="ch-steps">6 ຂັ້ນຕອນ</div>
+        </div>
+      </div>
+    </button>
+
+    <button class="chapter-btn" onclick="show('c2',this)">
+      <div class="ch-inner">
+        <div class="ch-icon" style="background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.25);">📜</div>
+        <div class="ch-text">
+          <div class="ch-num">Step 2</div>
+          <div class="ch-title">Group Policy (GPO)</div>
+          <div class="ch-steps">7 ຂັ້ນຕອນ</div>
+        </div>
+      </div>
+    </button>
+
+    <button class="chapter-btn" onclick="show('c3',this)">
+      <div class="ch-inner">
+        <div class="ch-icon" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);">🔐</div>
+        <div class="ch-text">
+          <div class="ch-num">Step 3</div>
+          <div class="ch-title">Share & NTFS Permissions</div>
+          <div class="ch-steps">5 ຂັ້ນຕອນ</div>
+        </div>
+      </div>
+    </button>
+
+    <button class="chapter-btn" onclick="show('c4',this)">
+      <div class="ch-inner">
+        <div class="ch-icon" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25);">🚀</div>
+        <div class="ch-text">
+          <div class="ch-num">Step 4</div>
+          <div class="ch-title">FSRM Tools</div>
+          <div class="ch-steps">4 ຂັ້ນຕອນ</div>
+        </div>
+      </div>
+    </button>
+
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">
+      <div class="topbar-dot"></div>
+      <span id="topbar-label">Step 0 — ຕັ້ງຄ່າ Network & Static IP</span>
+    </div>
+    <div class="step-counter" id="step-counter">7 ຂັ້ນຕອນ</div>
+  </div>
+
+  <div class="content">
+
+    <div id="c0" class="chapter-view active">
+      <div class="chapter-header">
+        <span class="ch-eyebrow" style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);color:#93c5fd;">ບົດນຳ — ເຮັດກ່ອນທຸກຢ່າງ</span>
+        <h2>🌐 ຕັ້ງຄ່າ Network & Static IP</h2>
+        <p>ກ່ອນ Config ລະບົບ Windows Server ໃນ VMware ຕ້ອງຕັ້ງ Static IP ໃຫ້ຮຽບຮ้อยກ່ອນສະເໝີ</p>
+      </div>
+
+      <div class="info-box box-red" style="margin-bottom:20px;">
+        <strong>🔴 ເຮັດກ່ອນທຸກຢ່າງ!</strong> ເຊີເວີທີ່ເປັນ Domain Controller ຕ້ອງມີ IP ຄົງທີ່ ຫ້າມໃຊ້ DHCP ເດັດຂາດ — ຖ້າ IP ປ່ຽນ Client ຈະຊອກ AD ບໍ່ເຫັນ ລະບົບຈະເພພັງທັນທີ
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--blue);">1</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ຕັ້ງຄ່າ VMware Network Adapter</div>
+            <span class="step-badge b-blue">VMware Settings</span>
+          </div>
+          <div class="path-box">
+            <span class="path-step">VM</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Settings</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Network Adapter</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">✅ NAT</span>
+          </div>
+          <div class="info-box box-blue">
+            <strong>NAT Mode</strong> = VM ແຊຣ໌ Internet ຈາກເຄື່ອງ Host ໄດ້ ໂດຍບໍ່ຕ້ອງຕັ້ງຄ່າເພີ່ມເຕີມໃນເຄື່ອງ Host
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--indigo);">2</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ເປີດ Network Properties ເທິງ Windows Server</div>
+            <span class="step-badge b-blue">Windows</span>
+          </div>
+          <div class="path-box">
+            <span class="path-step">Control Panel</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Network and Sharing Center</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Change adapter settings</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">ຄລิกວາ Ethernet → Properties</span>
+          </div>
+          <div class="note-row">
+            <div class="dot" style="background:var(--blue);"></div>
+            <span>ເລືອກ <span class="kw-b">Internet Protocol Version 4 (TCP/IPv4)</span> ແລ້ວຄລິກ Properties</span>
+          </div>
+          <div class="note-row">
+            <div class="dot" style="background:var(--blue);"></div>
+            <span>ເລືອກ <span class="kw">"Use the following IP address"</span> (Static — ຫ້າມເລືອກ Obtain automatically!)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--yellow);color:#000;">3</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ກວດເຊັກ Subnet ຕົວຈິງຂອງ VMware ກ່ອນໃສ່ IP</div>
+            <span class="step-badge b-purple">⚠️ ຕ້ອງເຮັດກ່ອນ</span>
+          </div>
+          <div class="path-box">
+            <span class="path-step">VMware Workstation</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">Edit</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">Virtual Network Editor</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">VMnet8 (NAT)</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Iບິ່ງຄ່າ Subnet IP</span>
+          </div>
+          <div class="info-box box-yellow">
+            Subnet ຂອງ VMnet8 ຈະບອກວ່າ IP ໃນ VM ຕ້ອງຢູ່ກຸ່ມ (วง) ໃດ<br>
+            <span style="font-family:var(--mono);color:#86efac;font-size:12px;display:block;margin-top:6px;">ຕົວຢ່າງ Subnet: 192.168.199.0 → IP VM: 192.168.199.x / Gateway: 192.168.199.2</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--purple);">4</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ປ້ອນຄ່າ IP ທັງໝົດ</div>
+            <span class="step-badge b-yellow">ຄ່າສຳຄັນຫຼາຍ</span>
+          </div>
+          <div class="grid2">
+            <div class="ip-card">
+              <div class="ip-label">IP Address</div>
+              <div class="ip-val" style="color:#93c5fd;">192.168.199.17</div>
+              <div class="ip-note">IP ຄົງທີ່ຂອງ Server VM (ຕົວເລກທ້າຍຫ້າມเป็น .0 ຫຼື .2)</div>
+            </div>
+            <div class="ip-card">
+              <div class="ip-label">Subnet Mask</div>
+              <div class="ip-val" style="color:var(--muted2);">255.255.255.0</div>
+              <div class="ip-note">ກຸ່ມ /24 ມາດຕະຖານ</div>
+            </div>
+            <div class="ip-card">
+              <div class="ip-label">Default Gateway</div>
+              <div class="ip-val" style="color:var(--muted2);">192.168.199.2</div>
+              <div class="ip-note">VMware NAT Gateway (ສະເໝີເປັນ .2 ຂອງ Subnet)</div>
+            </div>
+            <div class="ip-card important">
+              <div class="ip-label">⭐ Preferred DNS Server</div>
+              <div class="ip-val" style="color:var(--yellow);">127.0.0.1</div>
+              <div class="ip-note">Loopback — ເຊີເວີເຮັດໜ້າທີ່ເປັນ DNS ເອງ</div>
+            </div>
+          </div>
+          <div class="info-box box-red" style="margin-top:10px;">
+            <strong>ຫ້າມໃສ່ IP ເປັນ .0 ເດັດຂາດ!</strong> ເຊັ່ນ 192.168.199.<span class="kw-r">0</span> = Network Address ເຊິ່ງໃຊ້ງານບໍ່ໄດ້ → ຕ້ອງເປັນ .1 ຂຶ້ນໄປ ເຊັ່ນ .10 ຫຼື .17
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--indigo);">5</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ປິດ Windows Firewall (ສຳຄັນສຳລັບການທົດສອບ)</div>
+            <span class="step-badge b-red">ເພີ່ມເຕີມ</span>
+          </div>
+          <div class="path-box">
+            <span class="path-step">Control Panel</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Windows Defender Firewall</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">Turn Windows Defender Firewall on or off</span>
+          </div>
+          <div class="info-box box-yellow">
+            ເລືອກ <span class="kw-r">Turn off Windows Defender Firewall</span> ທັງສອງສ່ວນ (Private & Public) ເພື່ອປ້ອງກັນບໍ່ໃຫ້ບລັອກການພິງ (Ping) ແລະ ການເຊື່ອມຕໍ່ລະຫວ່າງເຄື່ອງ Client ແລະ Server
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--green);">6</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ກົດ OK ແລະ ປິດ Dialog</div>
+            <span class="step-badge b-purple">ບັນທຶກຄ່າ</span>
+          </div>
+          <div class="info-box box-blue">
+            ກົດ OK ທຸກໜ້າຕ່າງ → Windows ຈະຕັ້ງຄ່າ IP ທັນທີ ໂດຍບໍ່ຕ້ອງ Restart ເຄື່ອງ
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--green);">7</div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ທົດສອບ Ping ໃນ VM</div>
+            <span class="step-badge b-green">ທົດສອບ</span>
+          </div>
+          <div class="code"><span class="c-comment"># ເປີດ CMD ເທິງ Windows Server VM ແລ້ວພິມ</span>
+<span class="c-cmd">ping</span> <span class="c-val">192.168.199.2</span>    <span class="c-comment"># ທົດສອບ Gateway (VMware NAT)</span>
+<span class="c-cmd">ping</span> <span class="c-val">8.8.8.8</span>          <span class="c-comment"># ทົດສອບ Internet</span>
+<span class="c-cmd">ping</span> <span class="c-val">127.0.0.1</span>        <span class="c-comment"># ທົດສອບ Loopback (ຕົນເອງ)</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="c1" class="chapter-view">
+      <div class="chapter-header">
+        <span class="ch-eyebrow" style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;">ບົດທີ 1</span>
+        <h2>🏢 Active Directory Domain Services</h2>
+        <p>ຕິດຕັ້ງ AD DS ແລ້ວສ້າງໂຄງສ້າງ OU ສຳລັບຈັດການພະນັກງານ</p>
+      </div>
+
+      <div class="ou-tree">
+        <div class="ou-root">🌐 ChaleunIT.local &nbsp;<span style="font-size:11px;color:#a5b4fc;font-weight:400;">Active Directory Domain</span></div>
+        <div class="ou-main">📁 Chaleun_Staff &nbsp;<span style="font-size:11px;color:#9ca3af;font-weight:400;">Main OU</span></div>
+        <div class="ou-children">
+          <div class="ou-child ou-it">💻 IT_Dept</div>
+          <div class="ou-child ou-hr">🤝 HR_Dept</div>
+          <div class="ou-child ou-sales">📈 Sales_Dept</div>
+        </div>
+      </div>
+
+      <hr class="div">
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--indigo);">1</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ຕິດຕັ້ງ AD DS Role</div>
+            <span class="step-badge b-purple">Server Manager</span>
+          </div>
+          <div class="path-box">
+            <span class="path-step">Server Manager</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Add Roles and Features</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">Active Directory Domain Services</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--blue);">2</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">Promote ເປັນ Domain Controller</div>
+            <span class="step-badge b-blue">ສຳຄັນຫຼາຍ</span>
+          </div>
+          <div class="path-box">
+            <span class="path-step">⚑ ໄອຄອນທຸງ</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">Promote this server to a domain controller</span>
+          </div>
+          <div class="note-row"><div class="dot" style="background:var(--blue);"></div><span>ເລືອກ <span class="kw">"Add a new forest"</span></span></div>
+          <div class="note-row"><div class="dot" style="background:var(--blue);"></div><span>Root domain name: <span class="kw">ChaleunIT.local</span></span></div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--blue);">3</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ຕັ້ງຄ່າ DNS ເທິງເຄື່ອງ Client PC ກ່ອນ Join Domain</div>
+            <span class="step-badge b-yellow">⚠️ ຕົກຫຼົ່ນບໍ່ໄດ້</span>
+          </div>
+          <div class="info-box box-red">
+            <strong>ສິ່ງທີ່ຕ້ອງເຮັດໃນເຄື່ອງ Client (Windows 10/11):</strong><br>
+            ກ່ອນຈະເອົາເຄື່ອງ Client ມາ Join Domain ຕ້ອງເຂົ້າໄປທີ່ Network Properties ຂອງເຄື່ອງ Client ແລ້ວຕັ້ງຄ່າ <strong>Preferred DNS Server</strong> ໃຫ້ຊີ້ມາທີ່ IP ຂອງ Server ເທົ່ານັ້ນ!
+            <br><span style="color:#86efac;margin-top:4px;display:block;font-family:var(--mono);">Preferred DNS Server: 192.168.199.17</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--purple);">4</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ເປີດ Active Directory Users and Computers (ADUC)</div>
+            <span class="step-badge b-purple">Console</span>
+          </div>
+          <div class="path-box">
+            <span class="path-step">Server Manager</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Tools</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">Active Directory Users and Computers</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--yellow);color:#000;">5</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ສ້າງ OU ໂຄງສ້າງອົງກອນ</div>
+            <span class="step-badge b-yellow">ສ້າງ OU</span>
+          </div>
+          <table class="tbl">
+            <thead><tr><th>ສ້າງຢູ່ທີ່</th><th>ຊື່ OU</th><th>ໝາຍເຫດ</th></tr></thead>
+            <tbody>
+              <tr><td>ChaleunIT.local</td><td><span class="kw-p">Chaleun_Staff</span></td><td>Main OU ສຳລັບພະນັກງານທັງໝົດ</td></tr>
+              <tr><td>Chaleun_Staff</td><td><span class="kw-b">IT_Dept</span></td><td>Sub-OU ແຜນກ IT</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--green);">6</div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ສ້າງ User Account ແລະ ຍ້າຍເຂົ້າ OU</div>
+            <span class="step-badge b-green">User Management</span>
+          </div>
+          <div class="info-box box-blue">
+            <strong>ວິທີສ້າງ User:</strong> ຄລິກຂວາທີ່ OU → New → User → ປ້อนຂໍ້ມູນ → ຕັ້ງ Password
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div id="c2" class="chapter-view">
+      <div class="chapter-header">
+        <span class="ch-eyebrow" style="background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.25);color:#d8b4fe;">ບົດທີ 2 — ລະອຽດພິເສດ</span>
+        <h2>📜 Group Policy Objects (GPO)</h2>
+        <p>ແນວຄິດ: ຄືການອອກກົດໝາຍຈາກສ່ວນກາງ (Server) ເພື່ອບັງຄັບໃຊ້ກັບຄອມພິວເຕີ ຫຼື ພະນັກງານ (Users) ທີ່ຢູ່ໃນ OU ນັ້ນໆ</p>
+      </div>
+
+      <div class="info-box box-purple" style="margin-bottom:20px;">
+        <strong>🧠 ຈື່ຫຼັກການເຮັດວຽກ 4 ຂັ້ນຕອນ:</strong> <br>
+        1. <strong>ສ້າງໄຟລ໌ກົດໝາຍ (GPO)</strong> ຢູ່ພາຍໃຕ້ OU ທີ່ຕ້ອງການ <br>
+        2. <strong>ເຂົ້າໄປແກ້ໄຂ (Edit)</strong> ເພື່ອເລືອກວ່າຈະສັ່ງບລັອກ ຫຼື ຕັ້ງຄ່າຫຍັງ <br>
+        3. <strong>ກວດສອບການເຊື່ອມໂຍງ (Link)</strong> ວ່າກົດໝາຍຜູກກັບ OU ແລ້ວບໍ່ <br>
+        4. <strong>ສັ່ງອັບເດດ (gpupdate)</strong> ຢູ່ເຄື່ອງ Client ເພື່ອໃຫ້ກົດໝາຍມີຜົນທັນທີ
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--purple);">1</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ເປີດເຄື່ອງມືຈັດການ Group Policy</div>
+            <span class="step-badge b-purple">ຂັ້ນຕອນທີ 1</span>
+          </div>
+          <div class="path-box">
+            <span class="path-step">Server Manager</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Tools</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">Group Policy Management</span>
+          </div>
+          <div class="note-row"><div class="dot" style="background:var(--purple);"></div><span>ຄຳສັ່ງລັດ: ກົດປຸ່ມ <span class="kw">Win + R</span> ເທິງຄີບອດ → ພິມ <span class="kw">gpmc.msc</span> ແລ້ວກົດ Enter</span></div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--blue);">2</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ສ້າງກົດ GPO ໃໝ່ ຜູກເຂົ້າກັບ OU ເປົ້າໝາຍ</div>
+            <span class="step-badge b-blue">ຂັ້ນຕອນທີ 2</span>
+          </div>
+          <div class="info-box box-blue">
+            <strong>ເປັນຫຍັງຕ້ອງເຮັດຈຸດນີ້?</strong> ຖ້າເຈົ້າສ້າງ GPO ລ້າໆ ໂດຍບໍ່ຜູກ (Link) ກັບ OU, ກົດນັ້ນຈະບໍ່ມີຜົນກັບພະນັກງານຄົນໃດເລີຍ.
+          </div>
+          <div class="path-box">
+            <span class="path-step">ຂະຫຍາຍ Forest</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Domains</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">ChaleunIT.local</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">ຄລິກຂວາໃສ່ OU (ເຊັ່ນ: Sales_Dept)</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">Create a GPO in this domain, and Link it here...</span>
+          </div>
+          <div class="note-row"><div class="dot" style="background:var(--blue);"></div><span>ຕັ້ງຊື່ໃຫ້ຊັດເຈນໃນຊ່ອງ Name: ເຊັ່ນ <span class="kw">"Block_CP_and_Wallpaper"</span> ແລ້ວກົດ OK</span></div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--yellow);color:#000;">3</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ເຂົ້າໄປຕັ້ງຄ່າກົດບລັອກ (GPO Editor)</div>
+            <span class="step-badge b-yellow">ຂັ້ນຕອນທີ 3</span>
+          </div>
+          <div class="path-box">
+            <span class="path-step">ຄລິກຂວາໃສ່ GPO ທີ່ຫາສ້າງມື້ກີ້</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">Edit</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">ໜ້າຕ່າງ Group Policy Management Editor ຈະເປີດຂຶ້ນມາ</span>
+          </div>
+
+          <div style="margin-top:15px; font-weight:600; color:#fff;">📍 ຕົວຢ່າງການຕັ້ງຄ່າບລັອກ Control Panel (ຫ້າມພະນັກງານຕັ້ງຄ່າເຄື່ອງ):</div>
+          <div class="path-box" style="background:#111522;">
+            <span class="path-step">User Configuration</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Policies</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Administrative Templates</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Control Panel</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">ດັບເບິລຄລິກ Prohibit access to Control Panel and PC settings</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">เลือก 🔘 Enabled</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Apply → OK</span>
+          </div>
+
+          <div style="margin-top:15px; font-weight:600; color:#fff;">📍 ຕົວຢ່າງການບັງຄັບຮູບພື້ນຫຼັງ (Desktop Wallpaper):</div>
+          <div class="path-box" style="background:#111522;">
+            <span class="path-step">User Configuration</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Policies</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Administrative Templates</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Desktop</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Desktop</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">ດັບເບິລຄລິກ Desktop Wallpaper</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">ເລືອກ 🔘 Enabled</span>
+          </div>
+          <div class="note-row"><div class="dot" style="background:var(--yellow);"></div><span>ໃນຊ່อง <strong>Wallpaper Name</strong>: ໃຫ້ໃສ່ Path ໄຟລ໌ຮູບ (ແນະນຳໃຫ້ໃຊ້ Local Path ຂອງເຄື່ອງ Client ຫຼື ໄຟລ໌ແຊຣ໌ ເຊັ່ນ <span class="kw-b">C:\Windows\Web\Wallpaper\Windows\img0.jpg</span>)</span></div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--indigo);">4</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ວິທີແກ້ບັນຫາ Domain User ທຳມະດາ Login ຢູ່ໜ້າເຄື່ອງ Server ບໍ່ໄດ້</div>
+            <span class="step-badge b-red">ຈຸດປາບຊຽນ</span>
+          </div>
+          <div class="info-box box-red">
+            <strong>🔴 ງົງກັນຫຼາຍຈຸດນີ້:</strong> ເວລາເຈົ້າຢາກທົດສອບ GPO ໂດຍການ "Switch User" ຢູ່ໜ້າຈໍ VMware ຂອງເຄື່ອງ Server ເອງ, Windows Server ຈະບລັອກບໍ່ໃຫ້ User ທຳມະດາເຂົ້າ ເພາະມັນອັນຕະລາຍ. ຖ້າຢາກໃຫ້ Login ໄດ້ ຕ້ອງເປີດສິດກ່ອນ!
+          </div>
+          <div class="path-box">
+            <span class="path-step">ໃນໜ້າ GPMC</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">ຄລິກໃສ່ໂຟນເດີ Domain Controllers</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">ຄລິກຂວາໃສ່ Default Domain Controllers Policy</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">Edit</span>
+          </div>
+          <div class="path-box" style="background:#1a1018;">
+            <span class="path-step">Computer Configuration</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Policies</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Windows Settings</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Security Settings</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Local Policies</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">User Rights Assignment</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">ດັບເບິລຄລິກ Allow log on locally</span>
+          </div>
+          <div class="note-row"><div class="dot" style="background:var(--blue);"></div><span>ກົດປຸ່ມ <strong>Add User or Group...</strong> → ພິມຄຳວ່າ <span class="kw">Domain Users</span> → ກົດ Check Names (ມັນຈະຂີດກ້ອງ) → ກົດ OK → Apply → OK</span></div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--green);">5</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ສັ່ງອັບເດດກົດ ແລະ ທົດສອບ (ລັນຄຳສັ່ງ)</div>
+            <span class="step-badge b-green">ຂັ້ນຕອນສຸດທ້າຍ</span>
+          </div>
+          <div class="info-box box-green">
+            <strong>ວິທີອັບເດດ:</strong> ໂດຍປົກກະຕິ Windows ຈະໃຊ້ເວລາ 90 ນາທີໃນການດຶງກົດ GPO ໃໝ່. ເຮົາຕ້ອງໃຊ້ຄຳສັ່ງລັດເພື່ອບັງຄັບໃຫ້ມັນດຶງກົດມາໃຊ້ທັນທີ.
+          </div>
+          <div class="code"><span class="c-comment"># ເປີດ CMD (Command Prompt) ຂຶ້ນມາແລ້ວພິມ:</span>
+<span class="c-cmd">gpupdate</span> /force
+
+<span class="c-comment"># ຖ້າທົດສອບຢູ່ເຄື່ອງ Server ໃຫ້ລັນຄຳສັ່ງນີ້ ແລ້ວເຮັດການ Sign Out ຫຼື Switch User</span>
+<span class="c-comment"># ຈາກນັ້ນ Login ດ້ວຍ User ທີ່ຢູ່ໃນ OU ທີ່ເຮົາຜູກກົດໄວ້ (ເຊັ່ນ: Sales_User)</span></div>
+          <div class="note-row"><div class="dot" style="background:var(--green);"></div><span><strong>ວິທີເບິ່ງຜົນຮັບ:</strong> ລອງຄລິກຂວາໃສ່ປຸ່ມ Start → ເລືອກ Control Panel ຫຼື Settings → ຖ້າກົດເຮັດວຽກ ມັນຈະຂຶ້ນເຕືອນທັນທີວ່າ <strong>"This operation has been cancelled due to restrictions..."</strong> ແປວ່າເຈົ້າເຮັດສຳເລັດແລ້ວ!</span></div>
+        </div>
+      </div>
+    </div>
+
+
+    <div id="c3" class="chapter-view">
+      <div class="chapter-header">
+        <span class="ch-eyebrow" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);color:#6ee7b7;">ບົດທີ 3 — ລະອຽດພິເສດ</span>
+        <h2>🔐 Share & NTFS Permissions</h2>
+        <p>ແნວຄິດ: ການເຮັດລະບົບແຟ້ມຂໍ້ມູນສ່ວນກາງ (File Server) ທີ່ແບ່ງສິດໃຫ້ແຕ່ລະແຜນກເຂົ້າເຖິງໂຟນເດີບໍ່ຄືກັນ ໂດຍໃຊ້ລະບົບປະຕູປ້ອງກັນ 2 ຊັ້ນ</p>
+      </div>
+
+      <div class="info-box box-green" style="margin-bottom:20px;">
+        <strong>🚪 ປະຕູຊັ້ນທີ 1: Share Permission (ກວດສອບຕອນເຂົ້າມາທາງ Network)</strong><br>
+        ຕັ້ງຄ່າຢູ່ແທັບ <em>Sharing</em> → ໃຊ້ເພື່ອອະນຸຍາດໃຫ້ມອງເຫັນໂຟນເດີນີ້ຜ່ານເຄືອຂ່າຍໄຮ້ສາຍ/ມີສາຍໄດ້. <br><br>
+        <strong>🔐 ປະຕູຊັ້ນທີ 2: NTFS Permission (ກວດສອບສິດໃນລະດັບຕົວຟາຍ/ໂຟນເດີແທ້ໆ)</strong><br>
+        ຕັ້ງຄ່າຢູ່ແທັບ <em>Security</em> → ໃຊ້ຄວບຄຸມລະອຽດ ໃຜອ່ານໄດ້ຢ່າງດຽວ ໃຜຂຽນໄດ້ ໃຜລຶບໄດ້.
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--blue);">1</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ສ້າງ Folder ແລະ ຕັ້ງຄ່າປະຕູຊັ້ນນອກ (Share)</div>
+            <span class="step-badge b-blue">ຊັ້ນທີ່ 1 — Sharing</span>
+          </div>
+          <div class="note-row"><div class="dot" style="background:var(--blue);"></div><span>ເຂົ້າໄປ Drive C: ສ້າງໂຟນເດີໃໝ່ຊື່ວ່າ <span class="kw">"Company_Data"</span></span></div>
+          <div class="path-box">
+            <span class="path-step">ຄລิกຂວາໃສ່ໂຟນເດີ Company_Data</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Properties</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">ແທັບ Sharing</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">Advanced Sharing...</span>
+          </div>
+          <div class="note-row"><div class="dot" style="background:var(--blue);"></div><span>ຕິກເລືອກ 🔲 <strong>Share this folder</strong></span></div>
+          <div class="note-row"><div class="dot" style="background:var(--blue);"></div><span>ກົດປຸ່ມ <strong>Permissions</strong> → ໃຫ້ຄລິກເລືອກ <span class="kw-r">Everyone</span> ແລ້ວກົດ <strong>Remove</strong> ອອກທັນທີ! (ເພາະເຮົາບໍ່ຕ້ອງການໃຫ້ທຸກຄົນໃນໂລກເຂົ້າໄດ້)</span></div>
+          <div class="note-row"><div class="dot" style="background:var(--blue);"></div><span>ກົດ <strong>Add...</strong> → ພິມຊື່ກຸ່ມພະນັກງານ ເຊັ່ນ <span class="kw">"Sales_Dept"</span> → Check Names → OK</span></div>
+          <div class="note-row"><div class="dot" style="background:var(--blue);"></div><span>ຕິກໃຫ້ສິດ 🔲 <strong>Change</strong> ແລະ 🔲 <strong>Read</strong> ແກ່ກຸ່ມ Sales_Dept → ກົດ Apply → OK → OK</span></div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--green);">2</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ຕັ້ງຄ່າປະຕູຊັ້ນໃນ (NTFS Security) ແລະ ປິດສິດສືບທອດ</div>
+            <span class="step-badge b-green">ຊັ້ນທີ່ 2 — Security</span>
+          </div>
+          <div class="info-box box-yellow">
+            <strong>⚠️ ງົງບ່ອນນີ້ແທ້ໆ - Inheritance (ການສືບທອດ) ແມ່ນຫຍັງ?</strong><br>
+            ໂຟນເດີ Company_Data ມັນເກີດຢູ່ໃນ Drive C: ມັນເລີຍໄປດຶງເອົາສິດຂອງ Users ທົ່ວໄປໃນ Drive C: ຕິດມານຳ (ເຮັດໃຫ້ຄົນນອກເຂົ້າໄດ້ເຖິງຈະລຶບ Everyone ແລ້ວ). ເຮົາຕ້ອງ "ຕັດສາຍສຳພັນ" ໂດຍການປິດສິດສືບທອດກ່ອນ!
+          </div>
+          <div class="path-box">
+            <span class="path-step">ຢູ່ໃນໜ້າ Properties ຄືເກົ່າ</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">ແທັບ Security</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">Advanced</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">ກົດປຸ່ມ Disable inheritance</span>
+          </div>
+          <div class="note-row"><div class="dot" style="background:var(--green);"></div><span>Windows ຈະຖາມ ໃຫ້ເລືອກເມນູທຳອິດ: <span class="kw-g">"Convert inherited permissions into explicit permissions on this object"</span> (ຄືການກັອບປີ້ສິດເກົ່າມາເປັນສິດຕົວເອງ ເພື່ອໃຫ້ເຮົາເລືອກລຶບໄດ້)</span></div>
+          <div class="note-row"><div class="dot" style="background:var(--green);"></div><span>ຫຼັງຈາກນັ້ນ ກົດ OK ອອກມາໜ້າ Security ປົກກະຕິ → ກົດປຸ່ມ <strong>Edit...</strong></span></div>
+          <div class="note-row"><div class="dot" style="background:var(--green);"></div><span>ຄລິກລຶບ Users ທີ່ບໍ່ກ່ຽວຂ້ອງອອກ (ເຊັ່ນກຸ່ມ Users ທຳມະດາທີ່ຕິດມາ) ໃຫ້ເຫຼືອແຕ່ SYSTEM, Administrators.</span></div>
+          <div class="note-row"><div class="dot" style="background:var(--green);"></div><span>ກົດ <strong>Add...</strong> ເພື່ອເພີ່ມກຸ່ມ <span class="kw">"Sales_Dept"</span> ເຂົ້າໄປ → ຕິກໃຫ້ສິດ 🔲 <strong>Modify</strong> (ອ່ານ, ຂຽນ, ແກ້ໄຂ, ລຶບໄດ້) → ກົດ OK</span></div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--indigo);">3</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ວິທີໄລ່ສິດ Effective Permission (ອອກເສັງທິດສະດີ)</div>
+            <span class="step-badge b-purple">ວິທີຄິດໄລ່ສິດ</span>
+          </div>
+          <div class="info-box box-purple">
+            <strong>🧠 ຫຼັກການຈື່: ປະຕູໃດແຄບສຸດ ໄດ້ສິດນັ້ນ (Most Restrictive Wins)</strong><br>
+            * ຖ້າປະຕູ Share ໃຫ້ສິດແຄ່ <strong>Read (ອ່ານໄດ້ຢ່າງດຽວ)</strong> ແຕ່ NTFS ໃຫ້ສິດ <strong>Full Control (ເຮັດໄດ້ທຸກຢ່າງ)</strong> <br>
+            👉 ຜົນຮັບຕົວຈິງ: User ຈະເຮັດໄດ້ແຄ່ <strong>Read</strong> ເພາະຕິດປະຕູແຊຣ໌ຊັ້ນນອກທີ່ແຄບກວ່າ!
+            <br><br>
+            * ຖ້າສິດໃດມີຄຳວ່າ <strong>Deny (ປະຕິເສດ)</strong> ບໍ່ວ່າຊັ້ນໃດກໍຕາມ 👉 ຜົນຮັບຄື <strong>Blocked (ເຂົ້າບໍ່ໄດ້ເລີຍ)</strong> ທັນທີ ເພາະ Deny ມີສິດສູງສຸດ.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--green);">4</div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">ທົດສອບເຂົ້າໃຊ້ງານຈາກເຄື່ອງ Client PC</div>
+            <span class="step-badge b-green">ການກວດສອບ</span>
+          </div>
+          <div class="note-row"><div class="dot" style="background:var(--green);"></div><span>ໄປທີ່ເຄື່ອງ Client PC (ຫຼື Switch User ເທິງ Server ກໍໄດ້)</span></div>
+          <div class="note-row"><div class="dot" style="background:var(--green);"></div><span>ກົດປຸ່ມ <span class="kw">Win + R</span> ເພື່ອເປີດໜ້າຕ່າງ Run → ພິມ Path ແຊຣ໌ໂດຍໃຊ້ IP ຂອງ Server:</span></div>
+          <div class="code">\\192.168.199.17\Company_Data</div>
+          <div class="note-row"><div class="dot" style="background:var(--green);"></div><span>ລອງສ້າງໄຟລ໌ Notepad ໃໝ່ ຫຼື ລອງລຶບໄຟລ໌ ເພື່ອກວດສອບວ່າສິດ Modify ທີ່ເຮົາໃຫ້ໄປນັ້ນ ເຮັດວຽກໄດ້ແທ້ບໍ່.</span></div>
+        </div>
+      </div>
+    </div>
+
+
+    <div id="c4" class="chapter-view">
+      <div class="chapter-header">
+        <span class="ch-eyebrow" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:#fde68a;">บົດທີ 4 — ລະອຽດພิເສດ</span>
+        <h2>🚀 File Server Resource Manager (FSRM)</h2>
+        <p>ແნວຄິດ: ເປັນປລັກອິນເພີ່ມເຕີມເພື່ອເຮັດໃຫ້ File Server ຂອງເຮົາສະຫຼາດຂຶ້ນ ເຊັ່ນ: ຈຳກັດພື້ນທີ່ບໍ່ໃຫ້ພະນັກງານໃຊ້ເປືອງ, ບລັອກບໍ່ໃຫ້ເອົາເພງມາເກັບ, ແລະ ຊ່ອນໂຟນເດີທີ່ບໍ່ມີສິດເບິ່ງ</p>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--blue);">1</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">Quota Management (ຄຸມພື້ນທີ່ - ຫ້າມໃຊ້ເກີນ)</div>
+            <span class="step-badge b-blue">ບລັອກພື້ນທີ່</span>
+          </div>
+          <div class="info-box box-blue">
+            <strong>ຄວາມແຕກຕ່າງໃນຫ້ອງເສັງ (ອອກເລື້ອຍຫຼາຍ):</strong><br>
+            * 🔘 <strong>Hard Quota:</strong> ຖ້າຕັ້ງໄວ້ 100MB ພະນັກງານກັອບໄຟລ໌ຮອດ 100MB ລະບົບຈະ <strong>ບລັອກທັນທີ</strong> ກັອບເພີ່ມອີກບໍ່ໄດ້ເລີຍ. <br>
+            * 🔘 <strong>Soft Quota:</strong> ຫາກກາຍ 100MB ລະບົບຈະ <strong>ບໍ່ບລັອກ</strong> ພະນັກງານຍັງໃສ່ໄຟລ໌ໄດ້ເລື້ອຍໆ ແຕ່ມັນຈະສົ່ງ Email ແຈ້ງເຕືອນໄປຫາ Admin ເທົ່ານັ້ນ.
+          </div>
+          <div class="path-box">
+            <span class="path-step">ເປີດ FSRM ຈາກ Server Manager → Tools</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Quota Management</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">Quotas</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">ຄລິກຂວາໃສ່ພື້ນທີ່ວ່າງ → Create Quota...</span>
+          </div>
+          <div class="note-row"><div class="dot" style="background:var(--blue);"></div><span>ຊ່ອງ <strong>Quota path</strong>: ກົດ Browse ເລືອກໂຟນເດີທີ່ຕ້ອງການຈຳກັດ ເຊັ່ນ <span class="kw-b">C:\Company_Data</span></span></div>
+          <div class="note-row"><div class="dot" style="background:var(--blue);"></div><span>ເລືອກ 🔘 <strong>Define custom quota properties</strong> → ກົດ Custom Properties...</span></div>
+          <div class="note-row"><div class="dot" style="background:var(--blue);"></div><span>ໃສ່ເລກກຳນົດພື້ນທີ່ ເຊັ່ນ <span class="kw">100</span> ແລ້ວປ່ຽນຫົວໜ່ວຍເປັນ <span class="kw">MB</span></span></div>
+          <div class="note-row"><div class="dot" style="background:var(--blue);"></div><span>ເລືອກ 🔘 <strong>Hard quota</strong> → ກົດ OK → ກົດ Create → ມັນຈະຖາມໃຫ້ເຊັບ Template ໃຫ້ເລືອກ Save without template ແລ້ວກົດ OK</span></div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--red);">2</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">File Screening (ບລັອກປະເພດໄຟລ໌ - ຫ້າມເກັບເພງ/ໜັງ)</div>
+            <span class="step-badge b-red">ບລັອກໄຟລ໌</span>
+          </div>
+          <div class="info-box box-red">
+            <strong>ເປົ້າໝາຍ:</strong> ຫ້າມບໍ່ໃຫ້ພະນັກງານເອົາໄຟລ໌ນາມສະກຸນ ເຊັ່ນ <span class="kw-r">.mp3, .mp4, .avi</span> ມາໂຫຼດໄວ້ໃນເຊີເວີບໍລິສັດ.
+          </div>
+          <div class="path-box">
+            <span class="path-step">FSRM Console</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">File Screening Management</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">File Screens</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">ຄລິກขວາໃສ່ພື້ນທີ່ວ່າງ → Create File Screen...</span>
+          </div>
+          <div class="note-row"><div class="dot" style="background:var(--red);"></div><span>ຊ່ອງ <strong>File screen path</strong>: ກົດ Browse ເລືອກໂຟນເດີ <span class="kw-b">C:\Company_Data</span></span></div>
+          <div class="note-row"><div class="dot" style="background:var(--red);"></div><span>ຕິກເລືອກ 🔘 <strong>Derive properties from this file screen template</strong></span></div>
+          <div class="note-row"><div class="dot" style="background:var(--red);"></div><span>ເລືອກ Template ທີ່ຊື່ວ່າ: <span class="kw-r">"Block Audio and Video Files"</span> → ກົດປຸ່ມ Create ເປັນອັນສຳເລັດ</span></div>
+          <div class="note-row"><div class="dot" style="background:var(--red);"></div><span><strong>ວິທີທົດສອບ:</strong> ໄປທີ່ເຄື່ອງ Client ເຂົ້າໄປໃນໂຟນເດີແຊຣ໌ ແລ້ວລອງສ້າງໄຟລ໌ເປົ່າໆ ແລ້ວປ່ຽນຊື່ທ້າຍເປັນ <span class="kw">song.mp3</span> → ມັນຈະຂຶ້ນ Error ບອກວ່າເຈົ້າບໍ່ມີສິດວາງໄຟລ໌ນີ້!</span></div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--purple);">3</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">Access-Based Enumeration alebo ABE (ຊ່ອນໂຟນເດີລັບ)</div>
+            <span class="step-badge b-purple">ຄຸນສົມບັດ ABE</span>
+          </div>
+          <div class="info-box box-purple">
+            <strong>🔴 ຈຸດນີ້ຄົນມັກຫຼົງ:</strong> ປົກກະຕິແລ້ວ ຖ້າເຮົາມີໂຟນເດີຍ່ອຍຊື່ວ່າ "HR_Data" ແລະ "Sales_Data" ຢູ່ທາງໃນ. ເຖິງວ່າພະນັກງານ Sales ຈະບໍ່ມີສິດເຂົ້າໂຟນເດີ HR ແຕ່ພວກເຂົາກໍຍັງ <strong>"ມອງເຫັນຮູບໄອຄອນໂຟນເດີ HR"</strong> ຕັ້ງຢູ່ (ແຄ່ດັບເບິລຄລິກເຂົ້າໄປແລ້ວຂຶ້ນ Access Denied). <br><br>
+            ຖ້າເຮົາເປີດໃຊ້ງານ <strong>ABE</strong> → Windows ຈະກວດສອບວ່າ ໃຜບໍ່ມີສິດເຂົ້າໂຟນເດີ HR ມັນຈະ <strong>"ຊ່ອນຮູບໂຟນເດີນັ້ນອອກໄປເລີຍ"</strong> ເຮັດໃຫ້ພະນັກງານ Sales ບໍ່ຮູ້ວ່າມີໂຟນເດີ HR ຢູ່ເທິງໂລກນີ້!
+          </div>
+          <div class="path-box">
+            <span class="path-step">ໄປທີ່ Server Manager</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">ເລືອກເມນູ File and Storage Services ເບື້ອງຊ້າຍ</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">ຄລິກໃສ່ເມນູ Shares</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">ຄລິກຂວາໃສ່ຊື່ໂຟນເດີແຊຣ໌ຂອງເຮົາ (Company_Data) → ເລືອກ Properties</span>
+          </div>
+          <div class="path-box" style="background:#151022;">
+            <span class="path-step">ໄປທີ່ແທັບ Settings</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">ຕິກເລືອກ 🔲 Enable access-based enumeration</span>
+            <span class="path-sep">›</span>
+            <span class="path-step">ກົດ Apply → OK</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-left">
+          <div class="step-circle" style="background:var(--green);">4</div>
+        </div>
+        <div class="step-right">
+          <div class="step-title-row">
+            <div class="step-title">Shadow Copies (ລະບົບກູ້ຄືນໄຟລ໌ເວລາພະນັກງານຫຼົງລຶບ)</div>
+            <span class="step-badge b-green">ລະບົບກູ້ຄືນຂໍ້ມູນ</span>
+          </div>
+          <div class="info-box box-green">
+            <strong>ສະຖານະການຕົວຈິງ:</strong> ພະນັກງານເຮັດວຽກໄປແລ້ວຫຼົງມືລຶບໄຟລ໌ສຳຄັນຖິ້ມ ຫຼື ແກ້ໄຂຂໍ້ມູນຜິດພາດແລ້ວຢາກໄດ້ເວີຊັນຂອງມື້ວານນີ້ຄືນ. Admin ບໍ່ຕ້ອງໄປກູ້ໃນຖັງຂີ້ເຫຍື້ອ ໃຫ້ໃຊ້ Shadow Copies.
+          </div>
+          <div class="path-box">
+            <span class="path-step">ເປີດ This PC ຢູ່ເຄື່ອງ Server</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">ຄລິກຂວາໃສ່ Drive C:</span>
+            <span class="path-sep">›</span>
+            <span class="path-step highlight">ເລືອກ Configure Shadow Copies...</span>
+          </div>
+          <div class="note-row"><div class="dot" style="background:var(--green);"></div><span>ຄລິກເລືອກ Volume 🔘 <strong>C:</strong> → ກົດປຸ່ມ <strong>Enable</strong> → ກົດປຸ່ມ <strong>Create Now</strong> (ເພື່ອທົດສອບຖ່າຍ Snapshot ເກັບໄວ້ຕອນນີ້ທັນທີ) → ກົດ OK</span></div>
+          <div class="note-row"><div class="dot" style="background:var(--green);"></div><span><strong>ວິທີກູ້ຄືນ (ເຮັດຢູ່ເຄື່ອງ Client ຫຼື Server ກໍໄດ້):</strong> ຄລິກຂວາໃສ່ໂຟນເດີ Company_Data → ເລືອກ <strong>Properties</strong> → ໄປທີ່ແທັບ <span class="kw-g">"Previous Versions"</span> → ເລືອກວັນເວລາທີ່ຢາກຍ້ອນກັບໄປ → ກົດປຸ່ມ <strong>Restore...</strong> ໄຟລ໌ທີ່ເຄີຍຖືກລຶບຈະກັບຄືນມາຄືເກົ່າຢ່າງມະຫັດສະຈັນ!</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div></div></div><script>
+const labels = {
+  c0: ['Step 0 — ຕັ້ງຄ່າ Network & Static IP', '7 ຂັ້ນຕອນ'],
+  c1: ['Step 1 — Active Directory Domain Services', '6 ຂັ້ນຕອນ'],
+  c2: ['Step 2 — Group Policy Objects (GPO)', '5 ຂັ້ນຕອນ'],
+  c3: ['Step 3 — Share & NTFS Permissions', '4 ຂັ້ນຕອນ'],
+  c4: ['Step 4 — FSRM Tools', '4 ຂັ້ນຕອນ'],
+};
+
+function show(id, btn) {
+  document.querySelectorAll('.chapter-view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.chapter-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  document.getElementById('topbar-label').textContent = labels[id][0];
+  document.getElementById('step-counter').textContent = labels[id][1];
+  document.querySelector('.content').scrollTop = 0;
+}
+</script>
+</body>
+</html>
